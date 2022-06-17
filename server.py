@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+import sys
+
 from flask import Flask, request, make_response, render_template
 
 import config
@@ -117,7 +121,7 @@ def add_header(r):
 
 
 if __name__ == '__main__':
-    ip = '0.0.0.0'
-    port = 8080
+    ip = '127.0.0.1' if len(sys.argv) <= 2 else sys.argv[2]
+    port = 8080 if len(sys.argv) <= 1 else int(sys.argv[1])
     print("Site starting on http://" + ip + ":" + str(port))
-    app.run(host=ip, port=port, ssl_context=('cert.pem', 'key.pem'))
+    app.run(host=ip, port=port)
