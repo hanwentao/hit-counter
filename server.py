@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import sys
 
 from flask import Flask, request, make_response, render_template
@@ -32,6 +33,20 @@ def add_cookie(response, url):
 def make_text_response(count, url, cookie_required):
     """ Create a request with the count with a 200 status and give cookie back """
     response = make_response(str(count), 200)
+    if cookie_required:
+        add_cookie(response, url)
+    return response
+
+
+def make_json_response(count, url, cookie_required):
+    data = {
+        'schemaVersion': 1,
+        'label': 'hits',
+        'message': str(count),
+        'color': 'brightgreen',
+    }
+    response = make_response(json.dumps(data), 200)
+    response.content_type = 'application/json'
     if cookie_required:
         add_cookie(response, url)
     return response
@@ -74,6 +89,20 @@ def count_raw_route(url):
     return make_text_response(count, url, not valid_cookie)
 
 
+@app.route("/count/json", endpoint="count_json_route")
+@utils.get_and_validate_url
+def count_json_route(url):
+    """ Return the count in JSON for a url and add 1 to it """
+    # Get/generate cookie, cleanup views, add a view, get the count and commit changes
+    valid_cookie = utils.check_valid_cookie(request, url)
+    connection = db_connection.get_connection()
+    if not valid_cookie:
+        db_connection.add_view(connection, url)
+    count = db_connection.get_count(connection, url)
+
+    return make_json_response(count, url, not valid_cookie)
+
+
 @app.route("/count/tag.svg", endpoint="count_tag_route")
 @utils.get_and_validate_url
 def count_tag_route(url):
@@ -95,6 +124,16 @@ def no_count_raw_route(url):
     count = db_connection.get_count(connection, url)
 
     return make_text_response(count, url, False)
+
+
+@app.route("/nocount/json", endpoint="no_count_json_route")
+@utils.get_and_validate_url
+def no_count_json_route(url):
+    """ Return the count for a url in JSON for shields.io """
+    connection = db_connection.get_connection()
+    count = db_connection.get_count(connection, url)
+
+    return make_json_response(count, url, False)
 
 
 @app.route("/nocount/tag.svg", endpoint="no_count_tag_route")
